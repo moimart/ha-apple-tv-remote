@@ -2,15 +2,27 @@
 
 from __future__ import annotations
 
-from typing import Any
+import asyncio
+import logging
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .commands import BUTTONS, ButtonSpec
 from .const import CONF_NAME, CONF_REMOTE, DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
+SERVICE_CALL_TIMEOUT = 8.0
+"""Seconds to wait for the underlying ``remote.send_command`` service.
+
+When the target Apple TV is unreachable the service call can hang on
+TCP retries inside pyatv. Bail out after this many seconds so the
+button press fails fast rather than blocking on the dashboard side.
+"""
 
 
 async def async_setup_entry(
@@ -44,10 +56,23 @@ class AppleTvRemoteButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Forward the press to HA's `apple_tv` remote entity."""
-        await self.hass.services.async_call(
-            domain="remote",
-            service="send_command",
-            service_data={"command": self._spec.remote_command},
-            target={"entity_id": self._remote_entity_id},
-            blocking=True,
-        )
+        try:
+            async with asyncio.timeout(SERVICE_CALL_TIMEOUT):
+                await self.hass.services.async_call(
+                    domain="remote",
+                    service="send_command",
+                    service_data={"command": self._spec.remote_command},
+                    target={"entity_id": self._remote_entity_id},
+                    blocking=True,
+                )
+        except TimeoutError as err:
+            _LOGGER.warning(
+                "remote.send_command(%s) on %s timed out after %ss",
+                self._spec.remote_command,
+                self._remote_entity_id,
+                SERVICE_CALL_TIMEOUT,
+            )
+            raise HomeAssistantError(
+                f"Apple TV {self._remote_entity_id} did not respond within "
+                f"{SERVICE_CALL_TIMEOUT}s"
+            ) from err
