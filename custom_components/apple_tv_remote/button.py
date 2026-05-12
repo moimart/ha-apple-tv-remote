@@ -6,7 +6,6 @@ from typing import Any
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import SERVICE_TURN_OFF, SERVICE_TURN_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -57,13 +56,21 @@ class AppleTvRemoteButton(ButtonEntity):
         )
 
     async def _power_toggle(self) -> None:
-        """Inspect the remote's state and call turn_on / turn_off."""
+        """Toggle Apple TV power via the pyatv-backed send_command path.
+
+        HA's high-level ``remote.turn_on`` / ``remote.turn_off`` services
+        for apple_tv don't reliably wake the device — the verified pattern
+        is to route through ``remote.send_command`` with ``wakeup`` or
+        ``turn_off`` as the literal command argument, which pyatv handles
+        directly.
+        """
         state = self.hass.states.get(self._remote_entity_id)
         is_on = state is not None and state.state == "on"
-        service = SERVICE_TURN_OFF if is_on else SERVICE_TURN_ON
+        command = "turn_off" if is_on else "wakeup"
         await self.hass.services.async_call(
             domain="remote",
-            service=service,
+            service="send_command",
+            service_data={"command": command},
             target={"entity_id": self._remote_entity_id},
             blocking=True,
         )
