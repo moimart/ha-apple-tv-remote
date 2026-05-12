@@ -44,33 +44,10 @@ class AppleTvRemoteButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Forward the press to HA's `apple_tv` remote entity."""
-        if self._spec.remote_command == "_power_toggle":
-            await self._power_toggle()
-            return
         await self.hass.services.async_call(
             domain="remote",
             service="send_command",
             service_data={"command": self._spec.remote_command},
-            target={"entity_id": self._remote_entity_id},
-            blocking=True,
-        )
-
-    async def _power_toggle(self) -> None:
-        """Toggle Apple TV power via the pyatv-backed send_command path.
-
-        HA's high-level ``remote.turn_on`` / ``remote.turn_off`` services
-        for apple_tv don't reliably wake the device — the verified pattern
-        is to route through ``remote.send_command`` with ``wakeup`` or
-        ``turn_off`` as the literal command argument, which pyatv handles
-        directly.
-        """
-        state = self.hass.states.get(self._remote_entity_id)
-        is_on = state is not None and state.state == "on"
-        command = "turn_off" if is_on else "wakeup"
-        await self.hass.services.async_call(
-            domain="remote",
-            service="send_command",
-            service_data={"command": command},
             target={"entity_id": self._remote_entity_id},
             blocking=True,
         )

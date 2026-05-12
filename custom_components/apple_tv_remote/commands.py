@@ -32,11 +32,13 @@ BUTTONS: tuple[ButtonSpec, ...] = (
     ButtonSpec("volume_up", "Volume Up", "volume_up", "mdi:volume-plus"),
     ButtonSpec("volume_down", "Volume Down", "volume_down", "mdi:volume-minus"),
     ButtonSpec("siri", "Siri", "siri", "mdi:microphone"),
-    ButtonSpec("power_toggle", "Power Toggle", "_power_toggle", "mdi:power"),
+    ButtonSpec("wakeup", "Wake", "wakeup", "mdi:power"),
+    ButtonSpec("turn_off", "Turn Off", "turn_off", "mdi:power-sleep"),
 )
 """All button entities we create per config entry.
 
-``power_toggle`` is a synthetic command — the button entity inspects the
-target remote's state and sends `turn_on` or `turn_off` accordingly. All
-others map 1:1 to ``remote.send_command``.
+Every entry maps 1:1 to ``remote.send_command``. There's no synthetic
+state-introspection logic — power on and power off are two distinct
+buttons because pyatv exposes them as two distinct commands (``wakeup``
+and ``turn_off``).
 """
