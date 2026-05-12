@@ -22,6 +22,7 @@ class ButtonSpec:
 
 BUTTONS: tuple[ButtonSpec, ...] = (
     ButtonSpec("home", "Home", "top_menu", "mdi:apple"),
+    ButtonSpec("control_center", "Control Center", "home_hold", "mdi:view-dashboard"),
     ButtonSpec("back", "Back", "menu", "mdi:arrow-u-left-top"),
     ButtonSpec("up", "Up", "up", "mdi:chevron-up"),
     ButtonSpec("down", "Down", "down", "mdi:chevron-down"),
